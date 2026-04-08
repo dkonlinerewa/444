@@ -5874,7 +5874,20 @@ function includeChatView($db, $user) {
         setInterval(() => {
             if (chatState.type === 'guest') refreshGuestList();
         }, 8000);
+        
+        // Initialize global chat polling for all users
+        setupGlobalChatPolling();
     });
+    
+    // Global chat polling setup - allows all registered users to participate
+    function setupGlobalChatPolling() {
+        // Poll global chat messages periodically
+        setInterval(() => {
+            if (chatState.type === 'global' && chatState.receiverId === 0) {
+                loadMessages();
+            }
+        }, 3000);
+    }
 
     // =============================================
     // TAB SWITCHING
@@ -6278,7 +6291,11 @@ function loadMessages() {
         if (chatState.type === 'guest') {
             if (!chatState.sessionId) { userToast('Select a guest chat first','warning');  return; }
             payload.session_id = chatState.sessionId;
+        } else if (chatState.type === 'global') {
+            // Global broadcast - receiver_id is 0 (broadcast to all)
+            payload.receiver_id = 0;
         } else {
+            // Internal chat
             payload.receiver_id = chatState.receiverId;
         }
 
