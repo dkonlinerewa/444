@@ -5651,10 +5651,10 @@ function includeChatView($db, $user) {
         .chat-sidebar-header { padding:14px 16px; border-bottom:1px solid #e2e8f0; }
         .chat-sidebar-header input { width:100%; padding:6px 10px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.85rem; outline:none; }
         .chat-sidebar-header input:focus { border-color:#0f3b5e; }
-        .chat-tabs { display:flex; border-bottom:1px solid #e2e8f0; flex-shrink:0; }
-        .chat-tab { flex:1; padding:9px 4px; text-align:center; cursor:pointer; background:#f8fafc; border:none; font-size:0.82rem; font-weight:600; color:#64748b; transition:all 0.2s; }
+        .chat-tabs { display:flex; border-bottom:1px solid #cbd5e1; flex-shrink:0; background:#f1f5f9; }
+        .chat-tab { flex:1; padding:10px 4px; text-align:center; cursor:pointer; background:#e2e8f0; border:none; font-size:0.85rem; font-weight:700; color:#334155; transition:all 0.2s; border-bottom:2px solid transparent; margin-bottom:-1px; }
         .chat-tab.active { background:white; border-bottom:2px solid #0f3b5e; color:#0f3b5e; }
-        .chat-tab:hover:not(.active) { background:#f1f5f9; }
+        .chat-tab:hover:not(.active) { background:#f8fafc; color:#0f3b5e; }
         .chat-users { flex:1; overflow-y:auto; }
         .chat-section-label { padding:6px 12px; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#94a3b8; background:#f1f5f9; }
         .chat-user-item { padding:10px 14px; border-bottom:1px solid #f1f5f9; cursor:pointer; transition:background 0.15s; display:flex; align-items:center; gap:10px; }
@@ -5874,7 +5874,20 @@ function includeChatView($db, $user) {
         setInterval(() => {
             if (chatState.type === 'guest') refreshGuestList();
         }, 8000);
+        
+        // Initialize global chat polling for all users
+        setupGlobalChatPolling();
     });
+    
+    // Global chat polling setup - allows all registered users to participate
+    function setupGlobalChatPolling() {
+        // Poll global chat messages periodically
+        setInterval(() => {
+            if (chatState.type === 'global' && chatState.receiverId === 0) {
+                loadMessages();
+            }
+        }, 3000);
+    }
 
     // =============================================
     // TAB SWITCHING
@@ -5896,6 +5909,14 @@ function includeChatView($db, $user) {
 
         // Clear current chat
         clearChatArea();
+
+        // Auto-select Global Broadcast when switching to Global tab
+        if (type === 'global') {
+            const globalItem = document.querySelector('#panel-global .chat-user-item');
+            if (globalItem) {
+                selectGlobalChat(globalItem);
+            }
+        }
 
         if (type === 'guest') refreshGuestList();
     }
@@ -6270,7 +6291,11 @@ function loadMessages() {
         if (chatState.type === 'guest') {
             if (!chatState.sessionId) { userToast('Select a guest chat first','warning');  return; }
             payload.session_id = chatState.sessionId;
+        } else if (chatState.type === 'global') {
+            // Global broadcast - receiver_id is 0 (broadcast to all)
+            payload.receiver_id = 0;
         } else {
+            // Internal chat
             payload.receiver_id = chatState.receiverId;
         }
 
